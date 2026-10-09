@@ -78,6 +78,31 @@ where id = (select id from auth.users where email = 'you@example.com');
 Roles live in `public.profiles.role`. Customers cannot change it: the column
 is not writable through the API, and a trigger rejects any attempt.
 
+## Payments (Razorpay test mode, works without the database)
+
+Test mode is free and moves no real money.
+
+1. Sign up at https://dashboard.razorpay.com, switch to **Test Mode**, then
+   Account & Settings > API Keys > Generate Key. Put the values in `.env.local` as
+   `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`. Also set
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and
+   `NEXT_PUBLIC_SITE_URL` (any valid URL and placeholder key work until the database is connected).
+2. `npm run dev` and open http://localhost:3000/pay-demo.
+3. Pay with test card `4100 2800 0000 1007`, any future expiry, any CVV, and any
+   4 to 10 digit OTP. For UPI, use `success@razorpay` or `failure@razorpay`.
+
+**Webhook (optional locally).** Razorpay can't reach `localhost`, so expose it
+with a tunnel, for example `npx cloudflared tunnel --url http://localhost:3000`.
+Then in Razorpay (Test Mode) go to Account & Settings > Webhooks > Add New Webhook:
+
+- URL: `https://<tunnel-host>/api/webhooks/razorpay`
+- Secret: a long random string, which you also put in `.env.local` as `RAZORPAY_WEBHOOK_SECRET`
+- Events: `payment.captured`, `payment.failed`, `order.paid`, `refund.processed`, `refund.failed`
+
+Until the database is connected, prices come from a temporary server-side list
+(`lib/payments/demo-catalog.ts`), and webhook events are verified and logged
+but not stored.
+
 ## Tests
 
 ```bash
