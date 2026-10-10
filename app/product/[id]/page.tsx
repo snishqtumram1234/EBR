@@ -48,7 +48,7 @@ async function ProductContent({ params }: { params: PageProps<"/product/[id]">["
               <div className="clip d1" data-cursor="View" style={{ position: "relative", aspectRatio: "4 / 5", overflow: "hidden", borderRadius: "999px 999px 6px 6px", background: p.bg }}>
                 <div data-speed="0.08" style={{ position: "absolute", left: "0", right: "0", top: "-10%", bottom: "-10%" }}>
                   <div className="zoom" style={{ position: "absolute", inset: "0" }}>
-                    <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    <img decoding="async" src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   </div>
                 </div>
               </div>

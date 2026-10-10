@@ -32,6 +32,23 @@ describe("POST /api/payment/upi/create", () => {
     expect(body.qrDataUrl).toMatch(/^data:image\/png;base64,/);
   });
 
+  it("includes delivery in the amount and enforces Pune-only express", async () => {
+    const { POST } = await import("@/app/api/payment/upi/create/route");
+    const address = { house: "1", street: "x", city: "Pune", state: "Maharashtra", pincode: "411045" };
+    const ok = await POST(post("http://localhost/x", { items: [{ productId: "test-item-one-rupee", quantity: 1 }], deliveryMethod: "express", address }));
+    expect((await ok.json()).amount).toBe(100 + 49900);
+    const bad = await POST(post("http://localhost/x", { items: [{ productId: "test-item-one-rupee", quantity: 1 }], deliveryMethod: "express", address: { ...address, pincode: "560001" } }));
+    expect(bad.status).toBe(422);
+  });
+
+  it("explains how to enable UPI when UPI_VPA is not set", async () => {
+    vi.stubEnv("UPI_VPA", "");
+    const { POST } = await import("@/app/api/payment/upi/create/route");
+    const res = await POST(post("http://localhost/x", { items: [{ productId: "test-item-one-rupee", quantity: 1 }] }));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error.message).toMatch(/UPI_VPA/);
+  });
+
   it("rejects client-supplied amounts", async () => {
     const { POST } = await import("@/app/api/payment/upi/create/route");
     const res = await POST(post("http://localhost/x", { items: [{ productId: "test-item-one-rupee", quantity: 1 }], amount: 1 }));

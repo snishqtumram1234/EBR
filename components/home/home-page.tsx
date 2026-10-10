@@ -114,7 +114,7 @@ export function HomePage() {
 <div style={{ gridColumn: "span 5", position: "relative" }}>
 <div className="clip d2" data-cursor="Shop" style={{ position: "relative", aspectRatio: "4 / 5", borderRadius: "999px 999px 6px 6px", overflow: "hidden", background: "#E2D2BA" }}>
 <div data-speed="0.1" style={{ position: "absolute", left: "0", right: "0", top: "-12%", bottom: "-12%" }}>
-<div className="zoom" style={{ position: "absolute", inset: "0" }}><img src="/images/hero-living.jpg" alt="Linen Cloud Sofa with a round oak coffee table, floor lamp and terracotta vase in warm window light" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 70%", display: "block" }} /></div>
+<div className="zoom" style={{ position: "absolute", inset: "0" }}><img decoding="async" src="/images/hero-living.jpg" alt="Linen Cloud Sofa with a round oak coffee table, floor lamp and terracotta vase in warm window light" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 70%", display: "block" }} /></div>
 </div>
 </div>
 <div data-speed="-0.18" className="hide-sm" style={{ position: "absolute", left: "-64px", bottom: "64px", width: "128px", height: "128px" }}>
@@ -168,7 +168,7 @@ export function HomePage() {
 <Link href="/product/modern-oak-study-table" className="card" data-cursor="View" style={{ gridColumn: "1 / span 7", display: "block", textDecoration: "none", color: "#231E1A" }}>
 <div className="clip" style={{ position: "relative", aspectRatio: "5 / 4", overflow: "hidden", borderRadius: "4px", background: "#E4D6C1" }}>
 <div data-speed="-0.07" style={{ position: "absolute", left: "0", right: "0", top: "-9%", bottom: "-9%" }}>
-<div className="zoom" style={{ position: "absolute", inset: "0" }}><div className="zoomh" style={{ position: "absolute", inset: "0" }}><img src="/images/study-table.jpg" alt="Modern Oak Study Table with a desk lamp and books" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 62%", display: "block" }} /></div></div>
+<div className="zoom" style={{ position: "absolute", inset: "0" }}><div className="zoomh" style={{ position: "absolute", inset: "0" }}><img decoding="async" src="/images/study-table.jpg" alt="Modern Oak Study Table with a desk lamp and books" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 62%", display: "block" }} /></div></div>
 </div>
 <span style={{ position: "absolute", top: "22px", left: "24px", fontSize: "12px", letterSpacing: ".18em" }}>N°01</span>
 <span style={{ position: "absolute", top: "22px", right: "24px", fontSize: "12px", letterSpacing: ".18em", textTransform: "uppercase" }}>Study</span>
@@ -182,7 +182,7 @@ export function HomePage() {
 <Link href="/product/modern-lounge-chair" className="card" data-cursor="View" style={{ gridColumn: "9 / span 4", marginTop: "240px", display: "block", textDecoration: "none", color: "#231E1A" }}>
 <div className="clip d1" style={{ position: "relative", aspectRatio: "4 / 5", overflow: "hidden", borderRadius: "4px", background: "#D9C9B0" }}>
 <div data-speed="-0.1" style={{ position: "absolute", left: "0", right: "0", top: "-10%", bottom: "-10%" }}>
-<div className="zoom" style={{ position: "absolute", inset: "0" }}><div className="zoomh" style={{ position: "absolute", inset: "0" }}><img src="/images/lounge-chair.jpg" alt="Modern Lounge Chair in teak and cream bouclé" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div></div>
+<div className="zoom" style={{ position: "absolute", inset: "0" }}><div className="zoomh" style={{ position: "absolute", inset: "0" }}><img decoding="async" src="/images/lounge-chair.jpg" alt="Modern Lounge Chair in teak and cream bouclé" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div></div>
 </div>
 <span style={{ position: "absolute", top: "22px", left: "24px", fontSize: "12px", letterSpacing: ".18em" }}>N°02</span>
 </div>
@@ -195,7 +195,7 @@ export function HomePage() {
 <Link href="/product/walnut-platform-bed" className="card" data-cursor="View" style={{ gridColumn: "3 / span 6", marginTop: "96px", display: "block", textDecoration: "none", color: "#231E1A" }}>
 <div className="clip" style={{ position: "relative", aspectRatio: "16 / 10", overflow: "hidden", borderRadius: "4px", background: "#E9DFD0" }}>
 <div data-speed="-0.06" style={{ position: "absolute", left: "0", right: "0", top: "-9%", bottom: "-9%" }}>
-<div className="zoom" style={{ position: "absolute", inset: "0" }}><div className="zoomh" style={{ position: "absolute", inset: "0" }}><img src="/images/platform-bed.jpg" alt="Walnut Platform Bed with upholstered headboard and sage linen" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%", display: "block" }} /></div></div>
+<div className="zoom" style={{ position: "absolute", inset: "0" }}><div className="zoomh" style={{ position: "absolute", inset: "0" }}><img decoding="async" src="/images/platform-bed.jpg" alt="Walnut Platform Bed with upholstered headboard and sage linen" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 60%", display: "block" }} /></div></div>
 </div>
 <span style={{ position: "absolute", top: "22px", left: "24px", fontSize: "12px", letterSpacing: ".18em" }}>N°03</span>
 </div>
@@ -226,7 +226,7 @@ export function HomePage() {
 {cats.map((c, i) => (<Fragment key={i}>
 <Link href={`/shop?cat=${c.kind}`} className="card" data-cursor="Shop" style={{ flex: "0 0 auto", width: "340px", display: "block", textDecoration: "none", color: "#231E1A" }}>
 <div style={{ position: "relative", aspectRatio: "4 / 5", overflow: "hidden", borderRadius: "4px", background: c.bg }}>
-<div className="zoomh" style={{ position: "absolute", inset: "0" }}><img src={c.img} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
+<div className="zoomh" style={{ position: "absolute", inset: "0" }}><img decoding="async" src={c.img} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
 <span style={{ position: "absolute", top: "20px", left: "22px", fontSize: "12px", letterSpacing: ".18em" }}>{c.num}</span>
 </div>
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: "16px" }}>
@@ -261,7 +261,7 @@ export function HomePage() {
 <article className="card fade" style={{ display: "flex", flexDirection: "column" }}>
 <div style={{ position: "relative", aspectRatio: "4 / 5", overflow: "hidden", borderRadius: "4px", background: p.bg }}>
 <Link href={`/product/${p.id}`} data-cursor="View" aria-label={`View ${p.name}`} style={{ position: "absolute", inset: "0", display: "block", overflow: "hidden" }}>
-<div className="zoomh" style={{ position: "absolute", inset: "0" }}><img src={p.img} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
+<div className="zoomh" style={{ position: "absolute", inset: "0" }}><img decoding="async" src={p.img} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
 </Link>
 <span style={{ position: "absolute", top: "16px", left: "16px", background: "#7B4E33", color: "#F7F1E8", fontSize: "11px", fontWeight: "600", letterSpacing: ".1em", padding: "6px 10px", borderRadius: "999px" }}>{p.offText}</span>
 <button onClick={p.like} aria-label={p.likeLabel} style={{ position: "absolute", top: "10px", right: "10px", width: "44px", height: "44px", borderRadius: "50%", border: "0", background: "#F7F1E8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
@@ -306,7 +306,7 @@ export function HomePage() {
 <div style={{ gridColumn: "7 / span 6" }}>
 <div className="clip d1" data-cursor="Shop" style={{ position: "relative", aspectRatio: "5 / 4", overflow: "hidden", borderRadius: "6px", background: "#B98B66" }}>
 <div data-speed="0.08" style={{ position: "absolute", left: "0", right: "0", top: "-10%", bottom: "-10%" }}>
-<div className="zoom" style={{ position: "absolute", inset: "0" }}><img src="/images/promo-living-edit.jpg" alt="The Living Room Edit: cream sofa, walnut coffee table and terracotta lounge chair" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
+<div className="zoom" style={{ position: "absolute", inset: "0" }}><img decoding="async" src="/images/promo-living-edit.jpg" alt="The Living Room Edit: cream sofa, walnut coffee table and terracotta lounge chair" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
 </div>
 </div>
 </div>
@@ -366,7 +366,7 @@ export function HomePage() {
 <div style={{ gridColumn: "span 8" }}>
 <Link href="/shop?room=living" className="clip" data-cursor="Shop" aria-label="Shop the living room" style={{ display: "block", position: "relative", aspectRatio: "16 / 10", overflow: "hidden", borderRadius: "6px", background: "#E2D2BB" }}>
 <div data-speed="0.08" style={{ position: "absolute", left: "0", right: "0", top: "-10%", bottom: "-10%" }}>
-<div className="zoom" style={{ position: "absolute", inset: "0" }}><img src="/images/room-living.jpg" alt="Living room with linen sofa, round oak coffee table, lounge chair and floor lamp" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
+<div className="zoom" style={{ position: "absolute", inset: "0" }}><img decoding="async" src="/images/room-living.jpg" alt="Living room with linen sofa, round oak coffee table, lounge chair and floor lamp" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
 </div>
 </Link>
 </div>
@@ -388,7 +388,7 @@ export function HomePage() {
 <div style={{ gridColumn: "5 / span 8" }}>
 <Link href="/shop?room=bedroom" className="clip" data-cursor="Shop" aria-label="Shop the bedroom" style={{ display: "block", position: "relative", aspectRatio: "16 / 10", overflow: "hidden", borderRadius: "6px", background: "#DCCDB8" }}>
 <div data-speed="0.08" style={{ position: "absolute", left: "0", right: "0", top: "-10%", bottom: "-10%" }}>
-<div className="zoom" style={{ position: "absolute", inset: "0" }}><img src="/images/room-bedroom.jpg" alt="Bedroom with walnut platform bed, two-door wardrobe, floor lamp and terracotta pouf" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
+<div className="zoom" style={{ position: "absolute", inset: "0" }}><img decoding="async" src="/images/room-bedroom.jpg" alt="Bedroom with walnut platform bed, two-door wardrobe, floor lamp and terracotta pouf" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
 </div>
 </Link>
 </div>
@@ -398,7 +398,7 @@ export function HomePage() {
 <div style={{ gridColumn: "span 8" }}>
 <Link href="/shop?room=dining" className="clip" data-cursor="Shop" aria-label="Shop the dining room" style={{ display: "block", position: "relative", aspectRatio: "16 / 10", overflow: "hidden", borderRadius: "6px", background: "#E6DACA" }}>
 <div data-speed="0.08" style={{ position: "absolute", left: "0", right: "0", top: "-10%", bottom: "-10%" }}>
-<div className="zoom" style={{ position: "absolute", inset: "0" }}><img src="/images/room-dining.jpg" alt="Dining room with mango wood table, four sage chairs and a cane sideboard" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
+<div className="zoom" style={{ position: "absolute", inset: "0" }}><img decoding="async" src="/images/room-dining.jpg" alt="Dining room with mango wood table, four sage chairs and a cane sideboard" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
 </div>
 </Link>
 </div>
@@ -472,7 +472,7 @@ export function HomePage() {
 <div role="dialog" aria-modal="true" aria-label="Quick view" data-native-scroll="1" style={{ position: "fixed", inset: "0", zIndex: "80", background: "rgba(35,30,26,.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", overflowY: "auto" }}>
 <div style={{ position: "relative", background: "#F7F1E8", maxWidth: "940px", width: "100%", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", borderRadius: "6px", overflow: "hidden" }}>
 <div style={{ position: "relative", minHeight: "420px", background: q.bg }}>
-<img src={q.img} alt={q.name} style={{ position: "absolute", inset: "0", width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+<img decoding="async" src={q.img} alt={q.name} style={{ position: "absolute", inset: "0", width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
 </div>
 <div style={{ padding: "44px 40px", display: "flex", flexDirection: "column", gap: "14px" }}>
 <span className="eyebrow">{q.catName} · ★ {q.rating}</span>

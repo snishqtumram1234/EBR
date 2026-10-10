@@ -85,3 +85,8 @@ a{color:#5A3A27}a:hover{color:#231E1A}
 
 /* The design's root wrapper, applied site-wide. */
 .site{font-family:var(--font-manrope),Manrope,system-ui,sans-serif;color:#231E1A;background:#EFE6D8;min-height:100%;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* Performance: promote the continuously transformed layers to the GPU so
+   scrolling only moves pre-painted textures. Visual output is unchanged. */
+[data-speed],[data-hx],[data-skew],.mq-track,.cursor,.nav{will-change:transform}
+.clip{contain:paint}

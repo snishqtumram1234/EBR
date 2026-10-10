@@ -18,7 +18,7 @@ export function ProductCard({ p, onQuickView }: { p: Product; onQuickView?: (id:
     <article className="card fade" style={{ display: "flex", flexDirection: "column" }}>
       <div style={{ position: "relative", aspectRatio: "4 / 5", overflow: "hidden", borderRadius: "4px", background: p.bg }}>
         <Link href={`/product/${p.id}`} data-cursor="View" aria-label={`View ${p.name}`} style={{ position: "absolute", inset: "0", display: "block", overflow: "hidden" }}>
-          <div className="zoomh" style={{ position: "absolute", inset: "0" }}><img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
+          <div className="zoomh" style={{ position: "absolute", inset: "0" }}><img decoding="async" src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div>
         </Link>
         <span style={{ position: "absolute", top: "16px", left: "16px", background: "#7B4E33", color: "#F7F1E8", fontSize: "11px", fontWeight: "600", letterSpacing: ".1em", padding: "6px 10px", borderRadius: "999px" }}>{offText}</span>
         <button onClick={() => store.toggleLike(p.id)} aria-label={on ? `Remove ${p.name} from wishlist` : `Save ${p.name} to wishlist`} style={{ position: "absolute", top: "10px", right: "10px", width: "44px", height: "44px", borderRadius: "50%", border: "0", background: "#F7F1E8", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>

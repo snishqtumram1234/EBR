@@ -50,6 +50,9 @@ export function MotionEngine() {
       fill: [] as HTMLElement[],
       sk: [] as HTMLElement[],
       ready: false,
+      page: false,
+      moving: false,
+      skewCss: "",
       timers: [] as ReturnType<typeof setTimeout>[],
     };
 
@@ -99,7 +102,7 @@ export function MotionEngine() {
 
     const onWheel = (e: WheelEvent) => {
       if (!SMOOTH_SCROLL || reduce || e.ctrlKey || e.defaultPrevented) return;
-      if (!isPage()) return;
+      if (!m.page) return;
       const target = e.target as Element | null;
       if (target?.closest?.("[data-native-scroll]")) return;
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
@@ -135,7 +138,7 @@ export function MotionEngine() {
         m.cx = m.mx;
         m.cy = m.my;
       }
-      if (!fine || reduce || !isPage()) return;
+      if (!fine || reduce || !m.page) return;
       H.classList.add("cur-on");
       const t = (e.target as Element | null)?.closest?.("[data-cursor]");
       if (t) {
@@ -149,14 +152,33 @@ export function MotionEngine() {
 
     const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
+    // Performance notes (behaviour is identical to the design's loop):
+    //  - every frame does ONE read pass (positions) then ONE write pass (styles),
+    //    so the browser lays the page out once instead of once per element;
+    //  - frames where nothing is scrolling or easing do no work at all;
+    //  - style writes are skipped when the value has not changed.
+    let motionOn: boolean | null = null;
+    let scrolledOn: boolean | null = null;
+    let hidden = false;
+    const read = {
+      par: [] as number[],
+      hx: [] as { top: number; height: number; wrapW: number; scrollW: number }[],
+      fill: [] as { top: number; height: number }[],
+      pend: [] as { top: number; bottom: number }[],
+    };
+
     const loop = () => {
       if (!m.alive) return;
       m.frame++;
       const vh = W.innerHeight;
-      const pg = isPage();
+      if (m.frame % 10 === 1) m.page = isPage();
+      const pg = m.page;
       const motion = pg && !reduce;
       const k = PARALLAX;
-      H.classList.toggle("mo-motion", motion);
+      if (motion !== motionOn) {
+        motionOn = motion;
+        H.classList.toggle("mo-motion", motion);
+      }
 
       if (m.smoothing) {
         m.cur += (m.target - m.cur) * 0.085;
@@ -170,13 +192,24 @@ export function MotionEngine() {
       }
 
       const y = W.scrollY;
+      const scrolled = y !== m.lastY;
       m.vel += (y - m.lastY - m.vel) * 0.2;
       m.lastY = y;
-      H.classList.toggle("scrolled", y > 40);
+
+      const wantScrolled = y > 40;
+      if (wantScrolled !== scrolledOn) {
+        scrolledOn = wantScrolled;
+        H.classList.toggle("scrolled", wantScrolled);
+      }
+      let wantHidden = hidden;
       if (pg) {
-        if (m.vel > 1.2 && y > 320) H.classList.add("nav-hide");
-        else if (m.vel < -1.2 || y < 320) H.classList.remove("nav-hide");
-      } else H.classList.remove("nav-hide");
+        if (m.vel > 1.2 && y > 320) wantHidden = true;
+        else if (m.vel < -1.2 || y < 320) wantHidden = false;
+      } else wantHidden = false;
+      if (wantHidden !== hidden) {
+        hidden = wantHidden;
+        H.classList.toggle("nav-hide", hidden);
+      }
 
       if (m.frame % 12 === 1) {
         m.pend = Array.from(
@@ -189,54 +222,87 @@ export function MotionEngine() {
         m.fill = Array.from(D.querySelectorAll<HTMLElement>("[data-fill]"));
         m.sk = Array.from(D.querySelectorAll<HTMLElement>("[data-skew]"));
       }
-      if (m.ready) {
-        for (const n of m.pend) {
-          if (n.classList.contains("in")) continue;
-          const r = n.getBoundingClientRect();
+
+      const idle = !scrolled && !m.smoothing && !m.moving && Math.abs(m.vel) < 0.05 && Math.abs(m.skv) < 0.01 && m.frame % 12 !== 1;
+      m.moving = false;
+
+      if (!idle) {
+        // ---- READ PASS: nothing is written until every measurement is taken ----
+        const pending = m.ready ? m.pend.filter((n) => !n.classList.contains("in")) : [];
+        read.pend = pending.map((n) => n.getBoundingClientRect());
+        read.par = m.par.map((pe) => {
+          const box = pe.parentElement?.getBoundingClientRect();
+          return box ? box.top + box.height / 2 : 0;
+        });
+        read.hx = m.hx.map((tr) => {
+          const wrap = tr.parentElement;
+          if (!wrap) return { top: 0, height: 0, wrapW: 0, scrollW: 0 };
+          const rb = wrap.getBoundingClientRect();
+          return { top: rb.top, height: rb.height, wrapW: wrap.clientWidth, scrollW: tr.scrollWidth };
+        });
+        read.fill = m.fill.map((fb) => {
+          const fr = fb.getBoundingClientRect();
+          return { top: fr.top, height: fr.height };
+        });
+
+        // ---- WRITE PASS ----
+        for (let i = 0; i < pending.length; i++) {
+          const n = pending[i];
+          const r = read.pend[i];
           if (r.top < vh * 0.9 && r.bottom > -40) {
             n.classList.add("in");
             if (n.hasAttribute("data-count") && H.classList.contains("mo")) countUp(n);
           }
         }
-      }
 
-      for (const pe of m.par) {
-        if (!pe.parentElement) continue;
-        const box = pe.parentElement.getBoundingClientRect();
-        const sp = (parseFloat(pe.getAttribute("data-speed") ?? "") || 0) * k;
-        const tg = motion ? (box.top + box.height / 2 - vh / 2) * sp : 0;
-        const c = pe._py == null ? tg : pe._py + (tg - pe._py) * 0.12;
-        pe._py = c;
-        pe.style.transform = "translate3d(0," + c.toFixed(2) + "px,0)";
-      }
-
-      for (const tr of m.hx) {
-        const wrap = tr.parentElement;
-        if (!wrap) continue;
-        const rb = wrap.getBoundingClientRect();
-        const max = Math.max(0, tr.scrollWidth - wrap.clientWidth + 112);
-        const pr = clamp((vh - rb.top) / (vh + rb.height), 0, 1);
-        const tx = motion ? -pr * max : 0;
-        const cx = tr._px == null ? tx : tr._px + (tx - tr._px) * 0.1;
-        tr._px = cx;
-        tr.style.transform = "translate3d(" + cx.toFixed(2) + "px,0,0)";
-      }
-
-      for (const fb of m.fill) {
-        const fr = fb.getBoundingClientRect();
-        const ws = fb.querySelectorAll<HTMLElement>(".w");
-        const fp = motion ? clamp((vh * 0.85 - fr.top) / (fr.height + vh * 0.3), 0, 1) : 1;
-        ws.forEach((w, wi) => {
-          const o = clamp(fp * ws.length - wi, 0, 1);
-          w.style.opacity = (0.16 + o * 0.84).toFixed(3);
+        m.par.forEach((pe, i) => {
+          if (!pe.parentElement) return;
+          const sp = (parseFloat(pe.getAttribute("data-speed") ?? "") || 0) * k;
+          const tg = motion ? (read.par[i] - vh / 2) * sp : 0;
+          const prev = pe._py;
+          const c = prev == null ? tg : prev + (tg - prev) * 0.12;
+          if (prev != null && Math.abs(c - prev) < 0.01 && Math.abs(tg - c) < 0.05) return;
+          if (prev == null || Math.abs(tg - c) >= 0.05) m.moving = true;
+          pe._py = c;
+          pe.style.transform = "translate3d(0," + c.toFixed(2) + "px,0)";
         });
+
+        m.hx.forEach((tr, i) => {
+          const rb = read.hx[i];
+          const max = Math.max(0, rb.scrollW - rb.wrapW + 112);
+          const pr = clamp((vh - rb.top) / (vh + rb.height), 0, 1);
+          const tx = motion ? -pr * max : 0;
+          const prev = tr._px;
+          const cx = prev == null ? tx : prev + (tx - prev) * 0.1;
+          if (prev != null && Math.abs(cx - prev) < 0.01 && Math.abs(tx - cx) < 0.05) return;
+          if (prev == null || Math.abs(tx - cx) >= 0.05) m.moving = true;
+          tr._px = cx;
+          tr.style.transform = "translate3d(" + cx.toFixed(2) + "px,0,0)";
+        });
+
+        m.fill.forEach((fb, i) => {
+          const fr = read.fill[i];
+          const ws = fb.querySelectorAll<HTMLElement>(".w");
+          const fp = motion ? clamp((vh * 0.85 - fr.top) / (fr.height + vh * 0.3), 0, 1) : 1;
+          ws.forEach((w, wi) => {
+            const o = (0.16 + clamp(fp * ws.length - wi, 0, 1) * 0.84).toFixed(3);
+            if (w.dataset.o !== o) {
+              w.dataset.o = o;
+              w.style.opacity = o;
+            }
+          });
+        });
+
+        const skT = motion ? clamp(m.vel * 0.3, -9, 9) : 0;
+        m.skv += (skT - m.skv) * 0.1;
+        const skew = "skewX(" + (-m.skv).toFixed(2) + "deg)";
+        if (skew !== m.skewCss) {
+          m.skewCss = skew;
+          for (const s of m.sk) s.style.transform = skew;
+        }
       }
 
-      const skT = motion ? clamp(m.vel * 0.3, -9, 9) : 0;
-      m.skv += (skT - m.skv) * 0.1;
-      for (const s of m.sk) s.style.transform = "skewX(" + (-m.skv).toFixed(2) + "deg)";
-
-      if (cursorEl && motion && fine) {
+      if (cursorEl && motion && fine && (Math.abs(m.mx - m.cx) > 0.1 || Math.abs(m.my - m.cy) > 0.1)) {
         m.cx += (m.mx - m.cx) * 0.2;
         m.cy += (m.my - m.cy) * 0.2;
         cursorEl.style.transform = "translate3d(" + m.cx.toFixed(1) + "px," + m.cy.toFixed(1) + "px,0)";
