@@ -42,6 +42,24 @@ function fields(formData: FormData) {
   return Object.fromEntries([...formData.entries()].filter(([k]) => !k.startsWith("$ACTION")));
 }
 
+function signupErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case "weak_password":
+      return "Choose a stronger password.";
+    case "over_email_send_rate_limit":
+    case "over_request_rate_limit":
+      return "Too many sign-up emails right now. Please wait a few minutes and try again.";
+    case "email_provider_disabled":
+    case "signup_disabled":
+      // A store setting, not something the customer can fix: say so plainly.
+      return process.env.NODE_ENV === "production"
+        ? "Sign-up is temporarily unavailable. Please try again later."
+        : "Email sign-up is switched off in your Supabase project. Open Authentication > Sign In / Providers > Email and turn on \"Enable Email provider\".";
+    default:
+      return "We couldn't create your account. Please try again.";
+  }
+}
+
 export async function loginAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
   if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED };
   const limited = await limit("login", 10);
@@ -54,6 +72,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   const { error } = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password });
   if (error) {
     // One message for every failure so the form cannot be used to find out which emails have accounts.
+    if (error.code === "email_provider_disabled") return { error: signupErrorMessage(error.code) };
     return {
       error: error.code === "email_not_confirmed" ? "Please confirm your email first. Check your inbox." : "Incorrect email or password.",
     };
@@ -79,9 +98,7 @@ export async function signupAction(_prev: AuthState, formData: FormData): Promis
       emailRedirectTo: `${publicEnv().NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
-  if (error) {
-    return { error: error.code === "weak_password" ? "Choose a stronger password." : "We couldn't create your account. Please try again." };
-  }
+  if (error) return { error: signupErrorMessage(error.code) };
   if (data.session) redirect(next); // email confirmation is off: signed in straight away
   return { notice: "Almost there. We've sent a confirmation link to your email. Open it to finish creating your account." };
 }
