@@ -5,7 +5,7 @@ import { PayButton } from "./pay-button";
 export default function PayDemoPage() {
   const products = DEMO_PRODUCTS.map(({ id, name, pricePaise }) => ({ id, name, pricePaise }));
   return (
-    <main>
+    <main className="wrap" style={{ paddingTop: "130px", paddingBottom: "100px" }}>
       <h1>Checkout demo</h1>
       <p>
         <strong>Cashfree (sandbox, no real money):</strong> choose UPI and enter{" "}

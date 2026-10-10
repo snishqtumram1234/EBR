@@ -46,16 +46,16 @@ describe("Cashfree routes", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
     const { POST } = await import("@/app/api/payment/cashfree/create-order/route");
-    const res = await POST(post("http://localhost/api/payment/cashfree/create-order", { items: [{ productId: "terracotta-planter-set-set-of-3", quantity: 2 }] }));
+    const res = await POST(post("http://localhost/api/payment/cashfree/create-order", { items: [{ productId: "terracotta-lamp-and-vase-set", quantity: 2 }] }));
     const body = await res.json();
     expect(res.status).toBe(200);
-    expect(body).toMatchObject({ paymentSessionId: "session_abc", mode: "sandbox", amount: 499800 });
+    expect(body).toMatchObject({ paymentSessionId: "session_abc", mode: "sandbox", amount: 999800 });
     expect(JSON.stringify(body)).not.toContain("cfsk_test_secret");
 
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://sandbox.cashfree.com/pg/orders");
     const sent = JSON.parse(String(init.body));
-    expect(sent.order_amount).toBe(4998);
+    expect(sent.order_amount).toBe(9998);
     expect(sent.order_currency).toBe("INR");
     expect(sent.order_meta.return_url).toBe("http://localhost/checkout/success?order_id={order_id}");
     expect(sent.customer_details.customer_id).toMatch(/^[A-Za-z0-9]+$/);

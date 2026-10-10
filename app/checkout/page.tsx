@@ -1,44 +1,34 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { DEMO_PRODUCTS } from "@/lib/payments/demo-catalog";
-import { DEMO_DELIVERY } from "@/lib/pricing/delivery";
 import { GST_RATE_BPS } from "@/lib/config";
+import { DEMO_DELIVERY } from "@/lib/pricing/delivery";
 import { CheckoutForm } from "./checkout-form";
-import styles from "./checkout.module.css";
 
-export const metadata: Metadata = { title: "Checkout · Furniture Store" };
+export const metadata: Metadata = { title: "Your bag — Aurelle" };
 
 export default function CheckoutPage() {
-  // Display data only. The server re-prices everything when payment starts.
-  const products = DEMO_PRODUCTS.map(({ id, name, pricePaise, mrpPaise, material, hex }) => ({
-    id,
-    name,
-    pricePaise,
-    mrpPaise,
-    material,
-    hex,
-  }));
-
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <span className={styles.brand}>Furniture Store</span>
-        <span className={styles.secure}>
-          <LockIcon /> Secure checkout
-        </span>
-      </header>
-      <Suspense fallback={<p className={styles.loading}>Loading checkout…</p>}>
-        <CheckoutForm products={products} delivery={DEMO_DELIVERY} gstRateBps={GST_RATE_BPS} />
-      </Suspense>
-    </div>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </svg>
+    <main>
+      <section style={{ position: "relative", padding: "150px 0 140px" }}>
+        <div className="wrap">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "24px", flexWrap: "wrap", marginBottom: "56px", position: "relative", paddingBottom: "18px" }}>
+            <div>
+              <span className="eyebrow fade">(01) — Checkout</span>
+              <h1 className="serif" style={{ margin: "18px 0 0", fontWeight: "300", fontSize: "clamp(54px, 8.4vw, 140px)", lineHeight: ".9", letterSpacing: "-.02em" }}>
+                <span className="rv"><span>Your</span></span>
+                <span className="rv d1"><span><em style={{ color: "#7B4E33" }}>bag.</em></span></span>
+              </h1>
+            </div>
+            <p className="fade d2" style={{ maxWidth: "340px", margin: "0", fontSize: "15px", lineHeight: "1.7", color: "#6A5C4F" }}>
+              Secure checkout by Cashfree. Pay by UPI, card, netbanking or wallet. Test mode: no real money is charged.
+            </p>
+            <span className="line d2" style={{ position: "absolute", left: "0", right: "0", bottom: "0", height: "1px", background: "rgba(35,30,26,.2)" }} />
+          </div>
+          <Suspense fallback={<p className="eyebrow">Loading your bag…</p>}>
+            <CheckoutForm delivery={DEMO_DELIVERY} gstRateBps={GST_RATE_BPS} />
+          </Suspense>
+        </div>
+      </section>
+    </main>
   );
 }

@@ -1,2 +1,87 @@
-﻿/* Unstyled placeholder. The designed UI replaces this. */
-body { font-family: system-ui, sans-serif; margin: 1rem; }
+/*
+ * Aurelle design system: copied value-for-value from the design reference
+ * (Main.dc.html <helmet><style>). Fonts are the same Google fonts, self-hosted
+ * through next/font and exposed as --font-cormorant / --font-manrope.
+ */
+body{margin:0;background:#EFE6D8}
+*{box-sizing:border-box}
+a{color:#5A3A27}a:hover{color:#231E1A}
+::selection{background:#7B4E33;color:#F7F1E8}
+.serif{font-family:var(--font-cormorant),'Cormorant Garamond',Georgia,serif}
+.wrap{max-width:1440px;margin:0 auto;padding-left:clamp(20px,4vw,56px);padding-right:clamp(20px,4vw,56px)}
+.eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#6A5C4F}
+.rv{display:block;overflow:hidden;padding-bottom:.08em;margin-bottom:-.08em}
+.rv>span{display:block}
+.mo .rv>span{transform:translateY(112%);transition:transform 1.4s cubic-bezier(.19,1,.22,1)}
+.mo .rv.in>span{transform:none}
+.mo .clip{clip-path:inset(100% 0 0 0);transition:clip-path 1.6s cubic-bezier(.77,0,.18,1)}
+.mo .clip.in{clip-path:inset(0 0 0 0)}
+.mo .clip .zoom{transform:scale(1.22);transition:transform 2.4s cubic-bezier(.19,1,.22,1)}
+.mo .clip.in .zoom{transform:scale(1)}
+.mo .fade{opacity:0;transform:translateY(44px);transition:opacity 1.2s ease,transform 1.5s cubic-bezier(.19,1,.22,1)}
+.mo .fade.in{opacity:1;transform:none}
+.mo .line{transform:scaleX(0);transform-origin:left center;transition:transform 1.8s cubic-bezier(.77,0,.18,1)}
+.mo .line.in{transform:none}
+.d1,.d1>span,.d1 .zoom{transition-delay:.1s!important}
+.d2,.d2>span,.d2 .zoom{transition-delay:.2s!important}
+.d3,.d3>span,.d3 .zoom{transition-delay:.3s!important}
+.d4,.d4>span,.d4 .zoom{transition-delay:.45s!important}
+.d5,.d5>span,.d5 .zoom{transition-delay:.6s!important}
+.pgrid>.fade:nth-child(4n+2){transition-delay:.1s}
+.pgrid>.fade:nth-child(4n+3){transition-delay:.2s}
+.pgrid>.fade:nth-child(4n+4){transition-delay:.3s}
+.loader{display:none}
+.mo-page .loader{display:flex;position:fixed;inset:0;z-index:100;background:#231E1A;color:#EFE6D8;transition:transform 1.3s cubic-bezier(.77,0,.18,1)}
+.mo-loaded .loader{transform:translateY(-100%)}
+.mo-gone .loader{display:none}
+.nav{transition:transform .9s cubic-bezier(.19,1,.22,1),background-color .5s ease,box-shadow .5s ease}
+.nav-hide .nav{transform:translateY(-100%)}
+.scrolled .nav{background-color:rgba(239,230,216,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(35,30,26,.08)}
+.ulink{text-decoration:none;color:#231E1A;background:linear-gradient(currentColor,currentColor) 0 100%/0 1px no-repeat;transition:background-size .7s cubic-bezier(.19,1,.22,1);padding:6px 0}
+.ulink:hover{background-size:100% 1px;color:#231E1A}
+.ibtn{width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:#231E1A;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;text-decoration:none;transition:background-color .4s}
+.ibtn:hover{background-color:rgba(35,30,26,.07);color:#231E1A}
+.btn{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 30px;border-radius:999px;background:#231E1A;color:#F7F1E8;border:1px solid #231E1A;font:500 12.5px/1 var(--font-manrope),Manrope,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
+.btn::before{content:"";position:absolute;inset:0;background:#7B4E33;transform:translateY(101%);border-radius:inherit;transition:transform .75s cubic-bezier(.19,1,.22,1);z-index:-1}
+.btn:hover{color:#F7F1E8}.btn:hover::before{transform:none}
+.btn-o{background:transparent;color:#231E1A}
+.btn-o::before{background:#231E1A}
+.btn-o:hover{color:#F7F1E8}
+.btn-l{background:#F2E9DC;color:#231E1A;border-color:#F2E9DC}
+.btn-l::before{background:#D9C3A5}
+.btn-l:hover{color:#231E1A}
+.card .zoomh{transition:transform 1.4s cubic-bezier(.19,1,.22,1)}
+.card:hover .zoomh{transform:scale(1.06) translateY(-6px)}
+.qv{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .7s cubic-bezier(.19,1,.22,1)}
+.card:hover .qv,.card:focus-within .qv{opacity:1;transform:none}
+.mq-track{display:flex;width:max-content;animation:mq 46s linear infinite}
+@keyframes mq{to{transform:translateX(-50%)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 24s linear infinite}
+.badge text{font:600 9.6px var(--font-manrope),Manrope,sans-serif;letter-spacing:.32em;fill:#231E1A;text-transform:uppercase}
+.cue{width:1px;height:64px;background:rgba(35,30,26,.18);position:relative;overflow:hidden}
+.cue::after{content:"";position:absolute;left:0;top:0;width:1px;height:100%;background:#231E1A;animation:cue 2.4s cubic-bezier(.77,0,.18,1) infinite}
+@keyframes cue{0%{transform:translateY(-100%)}65%,100%{transform:translateY(100%)}}
+.hx-box{overflow-x:auto}
+.mo-motion .hx-box{overflow:hidden}
+.cursor{position:fixed;left:0;top:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#231E1A;pointer-events:none;z-index:95;display:flex;align-items:center;justify-content:center;opacity:0;transition:width .6s cubic-bezier(.19,1,.22,1),height .6s cubic-bezier(.19,1,.22,1),margin .6s cubic-bezier(.19,1,.22,1),background-color .4s,opacity .3s}
+.cur-on .cursor{opacity:1}
+.cur-big .cursor{width:92px;height:92px;margin:-46px 0 0 -46px;background:#7B4E33}
+.cursor span{font:600 11px var(--font-manrope),Manrope,sans-serif;letter-spacing:.16em;color:#F7F1E8;text-transform:uppercase;opacity:0;transition:opacity .3s}
+.cur-big .cursor span{opacity:1}
+.field{width:100%;min-height:52px;border:0;border-bottom:1px solid rgba(35,30,26,.4);background:transparent;font:400 18px var(--font-manrope),Manrope,sans-serif;color:#231E1A;padding:0 4px;outline:none}
+.field:focus{border-bottom-color:#231E1A}
+.field::placeholder{color:#7d6e60}
+.menu-btn{display:none!important}
+@media (max-width:900px){
+.nav-links{display:none!important}
+.menu-btn{display:inline-flex!important}
+.mg>*{grid-column:1 / -1!important;margin-top:0!important}
+.room-text{order:2}
+.hide-sm{display:none!important}
+}
+@media (hover:none){.qv{opacity:1!important;transform:none!important}}
+@media (prefers-reduced-motion:reduce){.mq-track,.spin,.cue::after{animation:none!important}}
+
+/* The design's root wrapper, applied site-wide. */
+.site{font-family:var(--font-manrope),Manrope,system-ui,sans-serif;color:#231E1A;background:#EFE6D8;min-height:100%;overflow-x:hidden;-webkit-font-smoothing:antialiased}
