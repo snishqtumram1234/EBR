@@ -65,6 +65,16 @@ export function PayButton({ products }: { products: Product[] }) {
       name: "Furniture Store",
       description: "Test order",
       timeout: 25 * 60,
+      // Show UPI at the top; Razorpay's other enabled methods still follow.
+      config: {
+        display: {
+          blocks: {
+            upi: { name: "Pay using UPI", instruments: [{ method: "upi" }] },
+          },
+          sequence: ["block.upi"],
+          preferences: { show_default_blocks: true },
+        },
+      },
       handler: async (response: RazorpaySuccess) => {
         setStatus("Verifying payment…");
         const v = await fetch("/api/payment/verify", {
