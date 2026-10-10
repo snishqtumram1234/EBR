@@ -18,6 +18,7 @@ type ApiError = { error: { code: string; message: string } };
 type PayMethod = "cashfree" | "upi";
 
 type UpiRequest = {
+  orderNumber: string;
   reference: string;
   amount: number;
   payeeName: string;
@@ -45,7 +46,6 @@ export function CheckoutForm({ delivery, gstRateBps }: { delivery: typeof DEMO_D
   const [payMethod, setPayMethod] = useState<PayMethod>("upi");
   const [upi, setUpi] = useState<UpiRequest | null>(null);
   const [utr, setUtr] = useState("");
-  const [submittedUtr, setSubmittedUtr] = useState<{ reference: string; utr: string; amount: number } | null>(null);
 
   const lines = useMemo(
     () =>
@@ -115,9 +115,8 @@ export function CheckoutForm({ delivery, gstRateBps }: { delivery: typeof DEMO_D
       if (!res.ok || "error" in data) {
         setError("error" in data ? data.error.message : "Could not submit. Please try again.");
       } else {
-        setSubmittedUtr({ reference: upi.reference, utr, amount: upi.amount });
-        setUpi(null);
         store.clearCart();
+        router.push(`/orders/${upi.orderNumber}?placed=1`);
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -144,7 +143,7 @@ export function CheckoutForm({ delivery, gstRateBps }: { delivery: typeof DEMO_D
         body: JSON.stringify(payload()),
       });
       const data = (await res.json()) as
-        | { orderId: string; paymentSessionId: string; mode: "sandbox" | "production"; amount: number }
+        | { orderNumber: string; paymentSessionId: string; mode: "sandbox" | "production"; amount: number }
         | ApiError;
       if (!res.ok || "error" in data) {
         setError("error" in data ? data.error.message : "Could not start payment. Please try again.");
@@ -157,26 +156,11 @@ export function CheckoutForm({ delivery, gstRateBps }: { delivery: typeof DEMO_D
       });
       if (result.redirect) return; // Cashfree navigates to the confirmation page itself.
       // Paid, failed or closed: the confirmation page asks Cashfree for the real status.
-      router.push(`/checkout/success?order_id=${encodeURIComponent(data.orderId)}`);
+      router.push(`/checkout/success?order_id=${encodeURIComponent(data.orderNumber)}`);
     } catch {
       setError("Something went wrong. Please try again.");
       setBusy(false);
     }
-  }
-
-  if (submittedUtr) {
-    return (
-      <div style={{ padding: "40px 0 20px", textAlign: "center" }}>
-        <span className="eyebrow">Order {submittedUtr.reference}</span>
-        <p className="serif" style={{ fontSize: "clamp(40px, 5vw, 72px)", fontWeight: "300", margin: "18px 0 14px", lineHeight: ".95" }}>
-          Thank you. <em style={{ color: "#7B4E33" }}>We&apos;re checking your payment.</em>
-        </p>
-        <p style={{ maxWidth: "520px", margin: "0 auto 36px", fontSize: "16px", lineHeight: "1.7", color: "#6A5C4F" }}>
-          You paid {formatPaise(submittedUtr.amount)} by UPI (reference {submittedUtr.utr}). We confirm UPI payments against our bank statement, then your order is confirmed.
-        </p>
-        <Link href="/shop" className="btn">Continue shopping</Link>
-      </div>
-    );
   }
 
   if (lines.length === 0) {

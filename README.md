@@ -25,17 +25,23 @@ npm install
 
 ## 2. Environment
 
-Copy `.env.example` to `.env.local` and fill in the values. Each variable is
-marked PUBLIC or SERVER in the example file. Never commit `.env.local`, and
-never put a secret behind a `NEXT_PUBLIC_` prefix (the build fails if you do).
+Create `.env.local` (copy `.env.example`, then fill it in). **Put real values in
+`.env.local` only.** `.env.example` is a blank template that is committed to git
+and is never read by the server; the server reads `.env.local`.
 
-Where to find the Supabase values: Dashboard > Project Settings > API Keys
-(publishable and secret keys) and Data API (project URL).
+| Variable | Where to find it | Needed for |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase dashboard > Project Settings > Data API (Project URL) | everything |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Project Settings > API Keys (publishable) | login, reading data |
+| `SUPABASE_SECRET_KEY` | Project Settings > API Keys (secret). Server only, bypasses RLS | orders, payments, owner screen, seed |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` while developing | email confirmation links |
+| `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENV=sandbox` | Cashfree dashboard (Test mode) > Developers > API Keys | card / netbanking checkout |
+| `UPI_VPA`, `UPI_PAYEE_NAME` | your own UPI ID and the shop name | UPI QR payments |
 
-## 3. Database
+Never paste secret keys into chat or commit them. The build fails if client
+code references a secret.
 
-The Supabase CLI is installed as a dev dependency. No Docker is needed for
-these commands.
+## 3. Database (hosted Supabase, no Docker)
 
 ```bash
 npx supabase login
@@ -44,64 +50,57 @@ npm run db:push
 npm run db:types
 ```
 
-- `link` asks for your database password in the terminal. Don't paste it anywhere else.
-- `db:push` applies everything in `supabase/migrations/`.
-- `db:types` regenerates `lib/database.types.ts`. Run it after every migration.
+- `link` asks for the database password: type it in the terminal only.
+- `db:push` applies everything in `supabase/migrations/` (tables, row level
+  security, order functions, the 5-minute expiry job).
+- `db:types` replaces the placeholder `lib/database.types.ts` with generated types.
+  Run it after every migration.
 
-## 4. Seed (development project only)
+In the Supabase dashboard, for a demo: **Authentication > Sign In / Providers >
+Email > turn "Confirm email" off**. Supabase's built-in email sender is heavily
+rate-limited, so with confirmation on, signups can stall.
+
+## 4. Seed
 
 ```bash
 npm run seed -- --yes
 ```
 
-This creates 10 categories, 40 products with colour variants and placeholder
-images, the two delivery methods, about 100 serviceable pincodes (Pune first,
-then a sample of other metros), test coupons (`WELCOME10`, `FLAT1000`,
-`FESTIVE15`, plus `EXPIRED5` and `PAUSED20` for negative tests), and three demo
-reviewers with delivered orders and reviews. Re-running it is safe.
+Loads the 10 Aurelle products (same ids and prices as the storefront), a hidden
+₹1 payment-test item, Standard and Express delivery, about 100 serviceable
+pincodes (Pune first) and test coupons. Safe to run again; it does not refill
+stock for products that already exist.
 
-## 5. Make yourself an admin
+## 5. Make yourself the owner (admin)
 
-Sign up through the site first, then:
+Sign up on the site first, then:
 
 ```bash
 npm run make-admin -- you@example.com
 ```
 
-Use `--revoke` to demote. Or, in the Supabase SQL editor:
+Log in and open **Account > Owner dashboard** (`/admin`). Roles live in
+`public.profiles.role`, which customers cannot write.
 
-```sql
-update public.profiles set role = 'admin'
-where id = (select id from auth.users where email = 'you@example.com');
-```
+## How orders and payments work
 
-Roles live in `public.profiles.role`. Customers cannot change it: the column
-is not writable through the API, and a trigger rejects any attempt.
+1. The customer logs in and checks out. `create_order` (a database function)
+   checks stock, prices everything from the database, checks the pincode and
+   holds the stock for 30 minutes.
+2. **Cashfree**: our order number is the Cashfree order id. After payment the
+   server asks Cashfree for the real result and calls `mark_order_paid`.
+3. **UPI QR**: the QR carries the exact total. The customer sends the 12-digit
+   UTR; the order shows "verifying" until the owner matches it against the bank
+   statement on the owner screen and confirms (or rejects, with a reason).
+4. Unpaid orders are cancelled and their stock returned by a scheduled job
+   every 5 minutes. Orders waiting on the owner (UTR sent) are never expired.
 
-## Payments (Razorpay test mode, works without the database)
+The owner screen is at `/admin` (admins only; non-admins get a 404).
 
-Test mode is free and moves no real money.
+## Payments through Razorpay
 
-1. Sign up at https://dashboard.razorpay.com, switch to **Test Mode**, then
-   Account & Settings > API Keys > Generate Key. Put the values in `.env.local` as
-   `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`. Also set
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and
-   `NEXT_PUBLIC_SITE_URL` (any valid URL and placeholder key work until the database is connected).
-2. `npm run dev` and open http://localhost:3000/pay-demo.
-3. Pay with test card `4100 2800 0000 1007`, any future expiry, any CVV, and any
-   4 to 10 digit OTP. For UPI, use `success@razorpay` or `failure@razorpay`.
-
-**Webhook (optional locally).** Razorpay can't reach `localhost`, so expose it
-with a tunnel, for example `npx cloudflared tunnel --url http://localhost:3000`.
-Then in Razorpay (Test Mode) go to Account & Settings > Webhooks > Add New Webhook:
-
-- URL: `https://<tunnel-host>/api/webhooks/razorpay`
-- Secret: a long random string, which you also put in `.env.local` as `RAZORPAY_WEBHOOK_SECRET`
-- Events: `payment.captured`, `payment.failed`, `order.paid`, `refund.processed`, `refund.failed`
-
-Until the database is connected, prices come from a temporary server-side list
-(`lib/payments/demo-catalog.ts`), and webhook events are verified and logged
-but not stored.
+Razorpay routes (`/api/payment/create-order`, `/verify`, `/api/webhooks/razorpay`)
+still exist from the first version but are not used by the storefront.
 
 ## Tests
 

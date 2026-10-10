@@ -1,35 +1,28 @@
 import { logger } from "@/lib/logger";
+import { syncCashfreePayment } from "@/lib/orders/service";
 import { cashfreeSecretKey } from "@/lib/payments/cashfree";
 import { verifyCashfreeWebhookSignature } from "@/lib/payments/signature";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * POST /api/webhooks/cashfree
  *
  * Verifies x-webhook-signature (base64 HMAC-SHA256 of timestamp + raw body,
- * keyed with the Cashfree secret key) before parsing, deduplicates, logs the
- * event and answers 200 quickly.
- *
- * Interim (pre-database) version: deduplication is in memory and events are
- * only logged. Once the database is connected, events are stored in
- * webhook_events and successful payments call mark_order_paid.
+ * keyed with the Cashfree secret key) BEFORE parsing, records the event in
+ * webhook_events (unique event key, so retries are ignored), and for a
+ * successful payment asks Cashfree for the real status before marking the
+ * order paid. A webhook alone is never trusted as proof of payment.
  */
-
-const seen = new Set<string>();
-const MAX_SEEN = 5000;
-
 type CashfreeWebhook = {
   type?: string;
+  event_time?: string;
   data?: {
-    order?: { order_id?: string; order_amount?: number };
-    payment?: {
-      cf_payment_id?: string | number;
-      payment_status?: string;
-      payment_amount?: number;
-      payment_group?: string;
-      payment_message?: string;
-    };
+    order?: { order_id?: string };
+    payment?: { cf_payment_id?: string | number; payment_status?: string };
   };
 };
+
+const ok = () => Response.json({ ok: true });
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -53,26 +46,42 @@ export async function POST(request: Request) {
   try {
     event = JSON.parse(rawBody) as CashfreeWebhook;
   } catch {
-    return Response.json({ ok: true });
+    return ok();
   }
 
-  const orderId = event.data?.order?.order_id;
-  const payment = event.data?.payment;
-  const dedupeKey = `${event.type}:${orderId}:${payment?.cf_payment_id}`;
-  if (seen.has(dedupeKey)) {
-    logger.info("cashfree_webhook.duplicate_ignored", { type: event.type, orderId });
-    return Response.json({ ok: true, duplicate: true });
-  }
-  if (seen.size >= MAX_SEEN) seen.clear();
-  seen.add(dedupeKey);
+  const orderNumber = event.data?.order?.order_id;
+  const cfPaymentId = event.data?.payment?.cf_payment_id !== undefined ? String(event.data.payment.cf_payment_id) : undefined;
+  const eventKey = `cashfree:${event.type}:${cfPaymentId ?? orderNumber}:${timestamp ?? event.event_time ?? ""}`;
+  logger.info("cashfree_webhook.received", { type: event.type, orderNumber, cfPaymentId });
 
-  logger.info("cashfree_webhook.received", {
-    type: event.type,
-    orderId,
-    cfPaymentId: payment?.cf_payment_id !== undefined ? String(payment.cf_payment_id) : undefined,
-    paymentStatus: payment?.payment_status,
-    amountRupees: payment?.payment_amount,
-    method: payment?.payment_group,
-  });
-  return Response.json({ ok: true });
+  try {
+    const admin = createAdminClient();
+    const { error: dupe } = await admin.from("webhook_events").insert({
+      event_id: eventKey,
+      event_type: event.type ?? "unknown",
+      payload: event as unknown as Record<string, unknown>,
+    });
+    if (dupe) {
+      if (dupe.code !== "23505") throw dupe;
+      // Seen before. Skip it only if it was fully processed; a failed attempt is retried.
+      const { data: seen } = await admin.from("webhook_events").select("processed_at").eq("event_id", eventKey).maybeSingle();
+      if ((seen as { processed_at: string | null } | null)?.processed_at) {
+        logger.info("cashfree_webhook.duplicate_ignored", { eventKey });
+        return Response.json({ ok: true, duplicate: true });
+      }
+    }
+
+    if (event.type === "PAYMENT_SUCCESS_WEBHOOK" && orderNumber && /^ORD-[0-9]{3,12}$/.test(orderNumber)) {
+      const result = await syncCashfreePayment(orderNumber, null);
+      await admin.from("webhook_events").update({ processed_at: new Date().toISOString() }).eq("event_id", eventKey);
+      logger.info("cashfree_webhook.processed", { orderNumber, result });
+    } else {
+      await admin.from("webhook_events").update({ processed_at: new Date().toISOString() }).eq("event_id", eventKey);
+    }
+    return ok();
+  } catch (err) {
+    // Ask Cashfree to retry: a payment event we could not apply must not be lost.
+    logger.error("cashfree_webhook.handler_error", { type: event.type, orderNumber, err });
+    return Response.json({ error: { code: "INTERNAL_ERROR", message: "Could not process event" } }, { status: 500 });
+  }
 }

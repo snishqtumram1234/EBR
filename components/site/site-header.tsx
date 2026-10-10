@@ -2,14 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useStore } from "@/components/store/store-provider";
 
-/** Header and mobile menu, from the design. Section links scroll in place on the home page. */
+/**
+ * Header and mobile menu, from the design. Section links scroll in place on the
+ * home page. Which page we are on is only known at request time, so that part is
+ * isolated in a Suspense boundary; the fallback uses links that work from any page.
+ */
 export function SiteHeader() {
+  return (
+    <Suspense fallback={<HeaderView isHome={false} />}>
+      <HeaderWithPath />
+    </Suspense>
+  );
+}
+
+function HeaderWithPath() {
+  return <HeaderView isHome={usePathname() === "/"} />;
+}
+
+function HeaderView({ isHome }: { isHome: boolean }) {
   const { cartCount, likedCount } = useStore();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isHome = usePathname() === "/";
   const sec = (hash: string) => (isHome ? hash : `/${hash}`);
   const openMenu = () => setMenuOpen(true);
   const closeMenu = () => setMenuOpen(false);
@@ -34,7 +49,7 @@ export function SiteHeader() {
           )}
           <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "2px" }}>
             <Link href="/shop" className="ibtn" aria-label="Search furniture"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg></Link>
-            <a href="#" className="ibtn hide-sm" aria-label="Account"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg></a>
+            <Link href="/account" className="ibtn hide-sm" aria-label="Account"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg></Link>
             <Link href="/shop?saved=1" className="ibtn hide-sm" aria-label={`Wishlist, ${likedCount} saved`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg></Link>
             <Link href="/checkout" className="ibtn" aria-label={`Cart, ${cartCount} items`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg><span style={{ position: "absolute", top: "4px", right: "2px", minWidth: "18px", height: "18px", borderRadius: "9px", background: "#7B4E33", color: "#F7F1E8", fontSize: "10px", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>{cartCount}</span></Link>
           </div>
@@ -50,6 +65,7 @@ export function SiteHeader() {
             <a href={sec("#rooms")} onClick={closeMenu} style={{ color: "#EFE6D8", textDecoration: "none" }}>Rooms</a>
             <a href={sec("#why")} onClick={closeMenu} style={{ color: "#EFE6D8", textDecoration: "none" }}>Our craft</a>
             <Link href="/checkout" onClick={closeMenu} style={{ color: "#EFE6D8", textDecoration: "none" }}>Cart ({cartCount})</Link>
+            <Link href="/account" onClick={closeMenu} style={{ color: "#EFE6D8", textDecoration: "none" }}>Account</Link>
           </nav>
         </div>
       )}

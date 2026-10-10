@@ -28,3 +28,8 @@ export function publicEnv(): PublicEnv {
   cached = parsed.data;
   return cached;
 }
+
+/** True when the Supabase URL and publishable key are present (used to degrade gracefully before setup). */
+export function isSupabaseConfigured(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+}

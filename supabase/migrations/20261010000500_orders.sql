@@ -109,19 +109,34 @@ create table public.payments (
   id                   uuid primary key default gen_random_uuid(),
   order_id             uuid not null references public.orders (id) on delete restrict,
   user_id              uuid not null references public.profiles (id) on delete restrict,
-  razorpay_order_id    text not null unique,
-  razorpay_payment_id  text unique,
+  -- 'cashfree' and 'razorpay' are gateways; 'upi' is a direct UPI QR payment
+  -- confirmed by the store owner against the bank statement.
+  provider             text not null check (provider in ('cashfree', 'razorpay', 'upi')),
+  -- Gateway order id (Cashfree order_id / Razorpay order_...) or, for 'upi',
+  -- the payment reference shown in the UPI app (FS...).
+  provider_order_id    text not null,
+  provider_payment_id  text,
+  -- UPI only: the 12-digit bank reference (UTR) the customer submits.
+  utr                  text check (utr ~ '^[0-9]{12}$'),
+  utr_submitted_at     timestamptz,
   amount_paise         integer not null check (amount_paise > 0),
   currency             text not null default 'INR' check (currency = 'INR'),
   status               public.payment_status not null default 'pending',
   method               text,
   failure_reason       text,
   refunded_paise       integer not null default 0 check (refunded_paise >= 0),
+  confirmed_by         uuid references public.profiles (id) on delete set null,
   raw_response         jsonb,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now(),
+  unique (provider, provider_order_id),
   check (refunded_paise <= amount_paise)
 );
+
+-- A payment id from a gateway is unique per provider; a UTR can back one payment only.
+create unique index payments_provider_payment_key on public.payments (provider, provider_payment_id) where provider_payment_id is not null;
+create unique index payments_utr_key on public.payments (utr) where utr is not null;
+create index payments_confirmed_by_idx on public.payments (confirmed_by);
 
 create index payments_order_id_idx on public.payments (order_id);
 create index payments_user_id_idx on public.payments (user_id);
@@ -135,7 +150,7 @@ create table public.refunds (
   id                  uuid primary key default gen_random_uuid(),
   payment_id          uuid not null references public.payments (id) on delete restrict,
   order_id            uuid not null references public.orders (id) on delete restrict,
-  razorpay_refund_id  text unique,
+  provider_refund_id  text unique,
   amount_paise        integer not null check (amount_paise > 0),
   status              public.refund_status not null default 'pending',
   reason              text check (char_length(reason) <= 500),

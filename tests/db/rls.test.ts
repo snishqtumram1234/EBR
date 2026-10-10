@@ -44,8 +44,8 @@ async function seedCatalogAndOrder() {
     [aliceOrderId, productId],
   );
   await db.query(
-    `insert into payments (order_id, user_id, razorpay_order_id, amount_paise)
-     values ($1, $2, 'order_test_1', 4999900)`,
+    `insert into payments (order_id, user_id, provider, provider_order_id, amount_paise)
+     values ($1, $2, 'cashfree', 'ORD-10001', 4999900)`,
     [aliceOrderId, alice],
   );
 }

@@ -118,6 +118,8 @@ export function createCashfreeOrder(input: {
   customer: { id: string; phone: string; name?: string; email?: string };
   returnUrl: string;
   note?: string;
+  /** Cashfree blocks payment after this time (must be 15 minutes to 30 days ahead). */
+  expiresAt?: Date;
   /** Small string key/values kept on the Cashfree order (max 10; values up to 255 chars). */
   tags?: Record<string, string>;
 }): Promise<CashfreeOrder> {
@@ -132,6 +134,7 @@ export function createCashfreeOrder(input: {
       customer_email: input.customer.email,
     },
     order_meta: { return_url: input.returnUrl },
+    order_expiry_time: input.expiresAt ? input.expiresAt.toISOString() : undefined,
     order_note: input.note,
     order_tags: input.tags ? sanitizeTags(input.tags) : undefined,
   });
@@ -150,9 +153,14 @@ export type CashfreeVerification =
   | { status: "pending"; order: CashfreeOrder }
   | { status: "failed"; order: CashfreeOrder; message: string };
 
-export async function verifyCashfreeOrder(orderId: string): Promise<CashfreeVerification> {
+export async function verifyCashfreeOrder(orderId: string, expectedAmountPaise?: number): Promise<CashfreeVerification> {
   const [order, payments] = await Promise.all([fetchCashfreeOrder(orderId), fetchCashfreePayments(orderId)]);
   const orderPaise = rupeesToPaise(order.order_amount);
+  if (expectedAmountPaise !== undefined && orderPaise !== expectedAmountPaise) {
+    // Cashfree's order does not match what our database says the customer owes.
+    logger.warn("payment.cashfree_expected_amount_mismatch", { orderId, expectedAmountPaise, orderPaise });
+    return { status: "failed", order, message: "Payment amount does not match the order" };
+  }
   const success = payments.find((p) => p.payment_status === "SUCCESS");
 
   if (order.order_status === "PAID" && success) {

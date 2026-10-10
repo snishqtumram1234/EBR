@@ -62,7 +62,7 @@ service-role server code.
 | `orders` | Order number `ORD-10001` onwards from `order_number_seq`. Status, payment status, amounts in paise (`total = subtotal - discount + shipping`, enforced by a check constraint), GST component (`tax_paise`, included in total) and rate, coupon, delivery method snapshot, expected delivery date, **shipping address snapshot (jsonb)**, `cart_hash` for duplicate prevention, `expires_at` for unpaid orders, `needs_review` flag for money that needs a human (e.g. captured after expiry). |
 | `order_items` | Snapshots of product name, slug, variant name, SKU, image and unit price at purchase time. |
 | `order_status_history` | Every status change with note and actor (null = system). Drives the tracking timeline. |
-| `payments` | One row per Razorpay order. `razorpay_order_id` unique, `razorpay_payment_id` unique when set. Amount, status, method, failure reason, refunded amount, raw response. |
+| `payments` | One row per payment attempt. `provider` is `cashfree`, `razorpay` or `upi`; `provider_order_id` is unique per provider (for Cashfree it is our order number, for UPI the reference shown in the UPI app). UPI rows also hold the customer's `utr`. Amount, status, method, failure reason, refunded amount. |
 | `refunds` | Razorpay refund id, amount, status (`pending`/`processed`/`failed`), reason, initiator. Status is updated from webhooks, not assumed. |
 | `webhook_events` | Razorpay event id (unique) for idempotency, type, payload, processed time, error. Admins read; nobody else. |
 | `admin_audit_log` | Who, what action, which record, before/after jsonb. Admins read; written only by triggers/functions. |
@@ -93,3 +93,18 @@ Bucket `product-images`: public read; insert, update and delete only when
 `is_admin()`; 5 MB limit; JPEG, PNG, WebP and AVIF only (SVG is excluded
 because it can carry scripts). The admin upload flow stores the object path in
 `product_images.storage_path`.
+
+## Order functions (SQL)
+
+All run in one transaction. Only `create_order` is callable by customers; the
+rest are `service_role` only and the owner ones re-check that the actor is an admin.
+
+| Function | What it does |
+|---|---|
+| `create_order(items, delivery, address)` | Customer, own session. Validates input, checks the pincode and Express availability, locks the products, checks stock, prices from the database, snapshots address and items, takes stock, writes the first history row. Reuses an identical unpaid order from the last 10 minutes. Unpaid orders expire after 30 minutes. |
+| `submit_upi_payment(reference, user, utr)` | Records the customer's UTR (unique) and stops the order from expiring while the owner checks. |
+| `mark_order_paid(payment, ...)` | The one function behind "this payment is real": payment paid, order confirmed, history row, sales count. Safe to call repeatedly. Money for an already cancelled order is flagged `needs_review` instead of being kept silently. |
+| `admin_confirm_payment`, `reject_upi_payment` | Owner confirms or rejects a UPI payment (rejection lets the customer correct the reference). |
+| `admin_set_order_status` | Owner moves an order along legal transitions only; cancelling returns stock. Writes `admin_audit_log`. |
+| `cancel_order` | Customer, owner or expiry. Returns stock exactly once. |
+| `cancel_expired_orders` | Scheduled every 5 minutes with pg_cron. |

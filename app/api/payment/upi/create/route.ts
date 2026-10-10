@@ -1,23 +1,28 @@
 import QRCode from "qrcode";
 import { z } from "zod";
+import { requireUser } from "@/lib/auth/session";
 import { upiEnv } from "@/lib/env";
 import { AppError, errorResponse } from "@/lib/errors";
 import { logger } from "@/lib/logger";
-import { checkoutSchema, quoteCheckout } from "@/lib/payments/demo-checkout";
+import { ensurePayment, placeOrder } from "@/lib/orders/service";
+import { checkoutSchema } from "@/lib/payments/demo-checkout";
 import { buildUpiLink, newUpiReference } from "@/lib/payments/upi";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
- * POST /api/payment/upi/create
+ * POST /api/payment/upi/create   (login required)
  *
- * Body: same as the Cashfree route: { items, deliveryMethod?, customer?, address? }.
- * The amount (items + delivery) is computed on the server. Returns a UPI deep
- * link and the same link as a QR code image for the store's own UPI ID.
+ * Body: { items, deliveryMethod, customer, address }. Creates (or reuses) the
+ * pending order, so stock is held and the amount comes from the database,
+ * then returns a UPI link and QR code for the store's own UPI ID.
  */
 export async function POST(request: Request) {
   try {
+    const user = await requireUser();
+    rateLimit(`pay:${user.id}`, 20, 10 * 60 * 1000);
     const input = checkoutSchema.parse(await request.json().catch(() => null));
-    const quote = quoteCheckout(input);
 
+    // Check configuration before holding any stock.
     let vpa: string;
     let payeeName: string;
     try {
@@ -26,21 +31,30 @@ export async function POST(request: Request) {
       throw new AppError("INTERNAL_ERROR", "UPI QR payments aren't set up yet. Add UPI_VPA to .env.local and restart the server.");
     }
 
-    const reference = newUpiReference();
+    const order = await placeOrder(input);
+    const payment = await ensurePayment({
+      orderId: order.orderId,
+      userId: user.id,
+      provider: "upi",
+      providerOrderId: newUpiReference(),
+      amountPaise: order.totalPaise,
+    });
+
     const upiLink = buildUpiLink({
       vpa,
       payeeName,
-      amountPaise: quote.totalPaise,
-      reference,
-      note: `Order ${reference}`,
+      amountPaise: order.totalPaise,
+      reference: payment.providerOrderId,
+      note: `Order ${order.orderNumber}`,
     });
     const qrDataUrl = await QRCode.toDataURL(upiLink, { width: 280, margin: 2, errorCorrectionLevel: "M" });
 
-    logger.info("payment.upi_requested", { reference, amountPaise: quote.totalPaise });
+    logger.info("payment.upi_requested", { orderNumber: order.orderNumber, reference: payment.providerOrderId, amountPaise: order.totalPaise });
 
     return Response.json({
-      reference,
-      amount: quote.totalPaise,
+      orderNumber: order.orderNumber,
+      reference: payment.providerOrderId,
+      amount: order.totalPaise,
       currency: "INR",
       payeeName,
       upiId: vpa,
