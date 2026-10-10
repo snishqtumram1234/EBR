@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatPaise } from "@/lib/money";
 
 type Product = { id: string; name: string; pricePaise: number };
@@ -21,11 +21,30 @@ type RazorpayInstance = {
   on: (event: "payment.failed", cb: (r: RazorpayFailure) => void) => void;
 };
 
+type CashfreeCheckoutResult = {
+  error?: { message?: string };
+  redirect?: boolean;
+  paymentDetails?: { paymentMessage?: string };
+};
+
+type CashfreeInstance = {
+  checkout: (options: { paymentSessionId: string; redirectTarget?: string }) => Promise<CashfreeCheckoutResult>;
+};
+
 declare global {
   interface Window {
     Razorpay?: new (options: Record<string, unknown>) => RazorpayInstance;
+    Cashfree?: (options: { mode: "sandbox" | "production" }) => CashfreeInstance;
   }
 }
+
+const METHOD_LABELS: Record<string, string> = {
+  upi: "UPI",
+  credit_card: "credit card",
+  debit_card: "debit card",
+  net_banking: "netbanking",
+  wallet: "wallet",
+};
 
 type ApiError = { error: { code: string; message: string } };
 
@@ -45,6 +64,60 @@ export function PayButton({ products }: { products: Product[] }) {
   const [busy, setBusy] = useState(false);
   const [upi, setUpi] = useState<UpiRequest | null>(null);
   const [utr, setUtr] = useState("");
+
+  async function verifyCashfree(orderId: string) {
+    setStatus("Verifying payment…");
+    const res = await fetch("/api/payment/cashfree/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    });
+    const result = (await res.json()) as { status: string; amount?: number; method?: string | null } | ApiError;
+    if ("error" in result) setStatus(`Payment not completed: ${result.error.message}`);
+    else if (result.status === "paid")
+      setStatus(
+        `Paid ${formatPaise(result.amount ?? 0)} by ${METHOD_LABELS[result.method ?? ""] ?? result.method ?? "Cashfree"}. Order ${orderId}`,
+      );
+    else setStatus("Payment is processing. Check again in a minute.");
+    setBusy(false);
+  }
+
+  // Cashfree falls back to a full-page redirect (e.g. in-app browsers) and returns here with ?cf_order_id=.
+  useEffect(() => {
+    const orderId = new URLSearchParams(window.location.search).get("cf_order_id");
+    if (!orderId) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync with the redirect result in the URL
+    void verifyCashfree(orderId);
+  }, []);
+
+  async function payWithCashfree() {
+    if (!window.Cashfree) {
+      setStatus("Payment window is still loading. Try again in a moment.");
+      return;
+    }
+    setBusy(true);
+    setStatus("Creating order…");
+    const res = await fetch("/api/payment/cashfree/create-order", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ items: [{ productId, quantity }] }),
+    });
+    const data = (await res.json()) as
+      | { orderId: string; paymentSessionId: string; mode: "sandbox" | "production"; amount: number }
+      | ApiError;
+    if (!res.ok || "error" in data) {
+      setStatus(`Could not start payment: ${"error" in data ? data.error.message : res.statusText}`);
+      setBusy(false);
+      return;
+    }
+
+    const cashfree = window.Cashfree({ mode: data.mode });
+    const result = await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: "_modal" });
+    if (result.redirect) return; // page will reload at return_url and verify there
+    // Whatever the popup reports (success, failure or closed), the server decides.
+    await verifyCashfree(data.orderId);
+  }
 
   async function startUpi() {
     setBusy(true);
@@ -154,6 +227,7 @@ export function PayButton({ products }: { products: Product[] }) {
   return (
     <div>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
+      <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" strategy="afterInteractive" />
       <label>
         Product{" "}
         <select value={productId} onChange={(e) => setProductId(e.target.value)}>
@@ -174,12 +248,17 @@ export function PayButton({ products }: { products: Product[] }) {
           onChange={(e) => setQuantity(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
         />
       </label>{" "}
-      <button onClick={startUpi} disabled={busy}>
-        Pay with UPI
-      </button>{" "}
-      <button onClick={pay} disabled={busy}>
-        Pay with card / netbanking
-      </button>
+      <p>
+        <button onClick={payWithCashfree} disabled={busy}>
+          Pay with Cashfree (UPI, cards, netbanking)
+        </button>{" "}
+        <button onClick={pay} disabled={busy}>
+          Pay with Razorpay (cards, netbanking)
+        </button>{" "}
+        <button onClick={startUpi} disabled={busy}>
+          Pay by UPI QR (direct, manual check)
+        </button>
+      </p>
       {upi && (
         <section>
           <h2>Pay {formatPaise(upi.amount)} with UPI</h2>

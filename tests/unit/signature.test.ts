@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { verifyCheckoutSignature, verifyWebhookSignature } from "@/lib/payments/signature";
+import { verifyCashfreeWebhookSignature, verifyCheckoutSignature, verifyWebhookSignature } from "@/lib/payments/signature";
 
 const KEY_SECRET = "test_key_secret_123";
 const WEBHOOK_SECRET = "test_webhook_secret_456";
@@ -68,5 +68,29 @@ describe("webhook signature", () => {
   it("rejects a signature made with the checkout key secret instead of the webhook secret", () => {
     const wrong = sign(rawBody, KEY_SECRET);
     expect(verifyWebhookSignature({ rawBody, signature: wrong, webhookSecret: WEBHOOK_SECRET })).toBe(false);
+  });
+});
+
+describe("cashfree webhook signature", () => {
+  const SECRET = "cf_test_secret";
+  const rawBody = JSON.stringify({ type: "PAYMENT_SUCCESS_WEBHOOK", data: { order: { order_id: "FS_1" }, payment: { payment_amount: 1 } } });
+  const timestamp = "1760000000000";
+  const valid = createHmac("sha256", SECRET).update(timestamp + rawBody).digest("base64");
+
+  it("accepts a valid signature over timestamp + raw body", () => {
+    expect(verifyCashfreeWebhookSignature({ rawBody, timestamp, signature: valid, secretKey: SECRET })).toBe(true);
+  });
+
+  it("rejects a changed body, changed timestamp or wrong secret", () => {
+    expect(verifyCashfreeWebhookSignature({ rawBody: rawBody.replace('"payment_amount":1', '"payment_amount":9'), timestamp, signature: valid, secretKey: SECRET })).toBe(false);
+    expect(verifyCashfreeWebhookSignature({ rawBody, timestamp: "1760000000001", signature: valid, secretKey: SECRET })).toBe(false);
+    expect(verifyCashfreeWebhookSignature({ rawBody, timestamp, signature: valid, secretKey: "other" })).toBe(false);
+  });
+
+  it("rejects missing or malformed signatures and timestamps", () => {
+    for (const signature of [undefined, null, "", "***", valid.slice(4)]) {
+      expect(verifyCashfreeWebhookSignature({ rawBody, timestamp, signature, secretKey: SECRET })).toBe(false);
+    }
+    expect(verifyCashfreeWebhookSignature({ rawBody, timestamp: null, signature: valid, secretKey: SECRET })).toBe(false);
   });
 });

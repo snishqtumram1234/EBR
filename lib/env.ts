@@ -79,4 +79,21 @@ export function upiEnv() {
   return upiCache;
 }
 
+const cashfreeSchema = z.object({
+  CASHFREE_APP_ID: z.string().min(1),
+  CASHFREE_SECRET_KEY: z.string().min(1),
+  CASHFREE_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
+});
+
+let cashfreeCache: z.infer<typeof cashfreeSchema> | undefined;
+
+export function cashfreeEnv() {
+  cashfreeCache ??= load("Cashfree", cashfreeSchema, {
+    CASHFREE_APP_ID: process.env.CASHFREE_APP_ID,
+    CASHFREE_SECRET_KEY: process.env.CASHFREE_SECRET_KEY,
+    CASHFREE_ENV: process.env.CASHFREE_ENV || undefined,
+  });
+  return cashfreeCache;
+}
+
 export const isProduction = process.env.NODE_ENV === "production";

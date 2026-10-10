@@ -19,6 +19,26 @@ function safeEqualHex(expectedHex: string, receivedHex: string): boolean {
 }
 
 /**
+ * Cashfree webhook signature: base64 HMAC-SHA256 of (timestamp + RAW body)
+ * keyed with the Cashfree secret key. Headers: x-webhook-signature and
+ * x-webhook-timestamp. Must run before the body is parsed.
+ */
+export function verifyCashfreeWebhookSignature(params: {
+  rawBody: string;
+  timestamp: string | null | undefined;
+  signature: string | null | undefined;
+  secretKey: string;
+}): boolean {
+  const { rawBody, timestamp, signature, secretKey } = params;
+  if (!rawBody || !timestamp || !signature || !secretKey) return false;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(signature)) return false;
+  const expected = createHmac("sha256", secretKey).update(timestamp + rawBody, "utf8").digest();
+  const received = Buffer.from(signature, "base64");
+  if (received.length !== expected.length) return false;
+  return timingSafeEqual(expected, received);
+}
+
+/**
  * Checkout signature: HMAC-SHA256 of "<order_id>|<payment_id>" with the key
  * secret. `orderId` must come from our server, not from the browser response.
  */
