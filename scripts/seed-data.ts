@@ -38,22 +38,22 @@ export const PINCODES: Array<{
     city: pincode.startsWith("4007") || pincode.startsWith("4213") ? "Thane / Navi Mumbai" : "Mumbai",
     state: "Maharashtra",
     standard_days: 5,
-    express_available: true,
-    express_days: 3,
+    express_available: false,
+    express_days: null,
   })),
   ...["560001", "560034", "560038", "560066", "560076", "560102"].map((pincode) => ({
-    pincode, city: "Bengaluru", state: "Karnataka", standard_days: 7, express_available: true, express_days: 3,
+    pincode, city: "Bengaluru", state: "Karnataka", standard_days: 7, express_available: false, express_days: null,
   })),
   ...["110001", "110016", "110017", "110024", "110048", "122002", "201301"].map((pincode) => ({
     pincode,
     city: pincode.startsWith("122") ? "Gurugram" : pincode.startsWith("201") ? "Noida" : "New Delhi",
     state: pincode.startsWith("122") ? "Haryana" : pincode.startsWith("201") ? "Uttar Pradesh" : "Delhi",
     standard_days: 7,
-    express_available: true,
-    express_days: 3,
+    express_available: false,
+    express_days: null,
   })),
   ...["500001", "500032", "500081", "500084"].map((pincode) => ({
-    pincode, city: "Hyderabad", state: "Telangana", standard_days: 7, express_available: true, express_days: 3,
+    pincode, city: "Hyderabad", state: "Telangana", standard_days: 7, express_available: false, express_days: null,
   })),
   ...["600001", "600017", "600040", "600096"].map((pincode) => ({
     pincode, city: "Chennai", state: "Tamil Nadu", standard_days: 7, express_available: false, express_days: null,

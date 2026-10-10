@@ -2,6 +2,7 @@ import { logger } from "@/lib/logger";
 import { syncCashfreePayment } from "@/lib/orders/service";
 import { cashfreeSecretKey } from "@/lib/payments/cashfree";
 import { verifyCashfreeWebhookSignature } from "@/lib/payments/signature";
+import type { Json } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
     const { error: dupe } = await admin.from("webhook_events").insert({
       event_id: eventKey,
       event_type: event.type ?? "unknown",
-      payload: event as unknown as Record<string, unknown>,
+      payload: event as unknown as Json,
     });
     if (dupe) {
       if (dupe.code !== "23505") throw dupe;

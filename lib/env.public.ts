@@ -5,7 +5,7 @@ import { z } from "zod";
  * `process.env.NEXT_PUBLIC_*` expression so Next.js can inline it at build time.
  */
 const schema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.url(),
+  NEXT_PUBLIC_SUPABASE_URL: z.url().transform((u) => new URL(u).origin), // tolerate a pasted "/rest/v1/" suffix
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
   NEXT_PUBLIC_SITE_URL: z.url(),
 });

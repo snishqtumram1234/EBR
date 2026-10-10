@@ -49,3 +49,4 @@ supabase/.temp/
 # tests
 .vitest/
 /.next-prod/
+/.next-e2e/

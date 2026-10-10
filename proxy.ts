@@ -12,7 +12,8 @@ const PROTECTED = ["/checkout", "/orders", "/account", "/admin"];
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = rawUrl ? new URL(rawUrl).origin : undefined; // tolerate a pasted "/rest/v1/" suffix
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return response; // Supabase not configured yet
 

@@ -20,6 +20,9 @@ const orderNumber = z.string().regex(/^ORD-[0-9]{3,12}$/);
 const uuid = z.string().uuid();
 const note = z.string().trim().max(300).optional();
 
+// The generated types treat optional SQL arguments as required strings; the functions accept NULL.
+const NO_VALUE = null as unknown as string;
+
 const STATUSES = ["processing", "packed", "shipped", "out_for_delivery", "delivered", "cancelled"] as const;
 
 async function run(order: string, work: (adminId: string) => Promise<string>): Promise<never> {
@@ -72,7 +75,7 @@ export async function setStatusAction(formData: FormData): Promise<void> {
     const orderId = uuid.parse(get(formData, "orderId"));
     const to = z.enum(STATUSES).parse(get(formData, "to"));
     const text = note.parse(get(formData, "note") || undefined);
-    const { error } = await createAdminClient().rpc("admin_set_order_status", { p_order_id: orderId, p_to: to, p_note: text ?? null, p_actor: adminId });
+    const { error } = await createAdminClient().rpc("admin_set_order_status", { p_order_id: orderId, p_to: to, p_note: text ?? NO_VALUE, p_actor: adminId });
     if (error) throw error;
     return to === "cancelled" ? "Order cancelled and stock returned." : "Order updated.";
   });

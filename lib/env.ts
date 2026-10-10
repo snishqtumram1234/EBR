@@ -21,7 +21,7 @@ function load<T extends z.ZodType>(group: string, schema: T, values: Record<stri
 }
 
 const supabaseSchema = z.object({
-  SUPABASE_URL: z.url(),
+  SUPABASE_URL: z.url().transform((u) => new URL(u).origin),
   SUPABASE_SECRET_KEY: z.string().min(1),
 });
 
@@ -41,7 +41,7 @@ let razorpayWebhookCache: z.infer<typeof razorpayWebhookSchema> | undefined;
 
 export function supabaseServerEnv() {
   supabaseCache ??= load("Supabase", supabaseSchema, {
-    SUPABASE_URL: process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_URL: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
     SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
   });
   return supabaseCache;

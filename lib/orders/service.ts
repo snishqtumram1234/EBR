@@ -115,6 +115,9 @@ export async function submitUpiReference(reference: string, userId: string, utr:
   logger.info("payment.upi_submitted", { reference });
 }
 
+// The generated types treat optional SQL arguments as required strings; the functions accept NULL.
+const NO_VALUE = null as unknown as string;
+
 export type SyncResult = "paid" | "pending" | "failed" | "needs_review";
 
 /**
@@ -147,9 +150,8 @@ export async function syncCashfreePayment(orderNumber: string, userId: string | 
   const { data: outcome, error: markError } = await admin.rpc("mark_order_paid", {
     p_payment_id: pay.id,
     p_provider_payment_id: result.cfPaymentId,
-    p_method: result.method,
-    p_actor: null,
-    p_raw: null,
+    p_method: result.method ?? NO_VALUE,
+    p_actor: NO_VALUE, // system action: no human actor
   });
   if (markError) throw toAppError(markError);
   logger.info("payment.marked_paid", { orderNumber, cfPaymentId: result.cfPaymentId, outcome });
