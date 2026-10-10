@@ -42,7 +42,7 @@ export function CheckoutForm({ delivery, gstRateBps }: { delivery: typeof DEMO_D
   const [form, setForm] = useState({ name: "", phone: "", email: "", house: "", street: "", city: "Pune", state: "Maharashtra", pincode: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [payMethod, setPayMethod] = useState<PayMethod>("cashfree");
+  const [payMethod, setPayMethod] = useState<PayMethod>("upi");
   const [upi, setUpi] = useState<UpiRequest | null>(null);
   const [utr, setUtr] = useState("");
   const [submittedUtr, setSubmittedUtr] = useState<{ reference: string; utr: string; amount: number } | null>(null);
@@ -303,8 +303,8 @@ export function CheckoutForm({ delivery, gstRateBps }: { delivery: typeof DEMO_D
           <h2 className="serif" style={{ ...h2Style, marginTop: "14px" }}>How would you like to <em style={{ color: "#7B4E33" }}>pay?</em></h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {([
-              ["cashfree", "UPI, cards, netbanking", "Secure checkout by Cashfree. Confirmed instantly."],
-              ["upi", "UPI QR code", "Scan with GPay, PhonePe or Paytm. We confirm it against our bank statement."],
+              ["upi", "UPI — scan & pay", "Scan with GPay, PhonePe or Paytm. The amount is filled in for you."],
+              ["cashfree", "Cards, netbanking & wallets", "Pay securely through Cashfree. Confirmed instantly."],
             ] as const).map(([key, title, note]) => {
               const active = payMethod === key;
               return (
