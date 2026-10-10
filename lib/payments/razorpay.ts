@@ -1,5 +1,5 @@
 import "server-only";
-import { razorpayEnv } from "@/lib/env";
+import { razorpayEnv, razorpayWebhookEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
@@ -109,5 +109,5 @@ export function keySecret(): string {
 }
 
 export function webhookSecret(): string {
-  return razorpayEnv().RAZORPAY_WEBHOOK_SECRET;
+  return razorpayWebhookEnv().RAZORPAY_WEBHOOK_SECRET;
 }

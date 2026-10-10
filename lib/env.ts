@@ -28,11 +28,16 @@ const supabaseSchema = z.object({
 const razorpaySchema = z.object({
   RAZORPAY_KEY_ID: z.string().regex(/^rzp_(test|live)_/, "must start with rzp_test_ or rzp_live_"),
   RAZORPAY_KEY_SECRET: z.string().min(1),
+});
+
+// Separate so checkout works before a webhook has been configured.
+const razorpayWebhookSchema = z.object({
   RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
 });
 
 let supabaseCache: z.infer<typeof supabaseSchema> | undefined;
 let razorpayCache: z.infer<typeof razorpaySchema> | undefined;
+let razorpayWebhookCache: z.infer<typeof razorpayWebhookSchema> | undefined;
 
 export function supabaseServerEnv() {
   supabaseCache ??= load("Supabase", supabaseSchema, {
@@ -46,9 +51,15 @@ export function razorpayEnv() {
   razorpayCache ??= load("Razorpay", razorpaySchema, {
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
-    RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
   });
   return razorpayCache;
+}
+
+export function razorpayWebhookEnv() {
+  razorpayWebhookCache ??= load("Razorpay webhook", razorpayWebhookSchema, {
+    RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
+  });
+  return razorpayWebhookCache;
 }
 
 export const isProduction = process.env.NODE_ENV === "production";
