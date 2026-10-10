@@ -29,11 +29,59 @@ declare global {
 
 type ApiError = { error: { code: string; message: string } };
 
+type UpiRequest = {
+  reference: string;
+  amount: number;
+  payeeName: string;
+  upiId: string;
+  upiLink: string;
+  qrDataUrl: string;
+};
+
 export function PayButton({ products }: { products: Product[] }) {
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [upi, setUpi] = useState<UpiRequest | null>(null);
+  const [utr, setUtr] = useState("");
+
+  async function startUpi() {
+    setBusy(true);
+    setStatus("Preparing UPI payment…");
+    setUpi(null);
+    const res = await fetch("/api/payment/upi/create", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ items: [{ productId, quantity }] }),
+    });
+    const data = (await res.json()) as UpiRequest | ApiError;
+    if (!res.ok || "error" in data) {
+      setStatus(`Could not start UPI payment: ${"error" in data ? data.error.message : res.statusText}`);
+    } else {
+      setUpi(data);
+      setStatus("");
+    }
+    setBusy(false);
+  }
+
+  async function submitUtr() {
+    if (!upi) return;
+    setBusy(true);
+    const res = await fetch("/api/payment/upi/confirm", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reference: upi.reference, utr }),
+    });
+    const data = (await res.json()) as { status: string } | ApiError;
+    if ("error" in data) setStatus(data.error.message);
+    else {
+      setStatus(`Thanks! UPI payment for ${formatPaise(upi.amount)} received for verification (UTR ${utr.trim()}).`);
+      setUpi(null);
+      setUtr("");
+    }
+    setBusy(false);
+  }
 
   async function pay() {
     if (!window.Razorpay) {
@@ -126,9 +174,38 @@ export function PayButton({ products }: { products: Product[] }) {
           onChange={(e) => setQuantity(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
         />
       </label>{" "}
+      <button onClick={startUpi} disabled={busy}>
+        Pay with UPI
+      </button>{" "}
       <button onClick={pay} disabled={busy}>
-        Pay now
+        Pay with card / netbanking
       </button>
+      {upi && (
+        <section>
+          <h2>Pay {formatPaise(upi.amount)} with UPI</h2>
+          <p>Scan with GPay, PhonePe, Paytm or any UPI app.</p>
+          {/* eslint-disable-next-line @next/next/no-img-element -- data URL generated on the server */}
+          <img src={upi.qrDataUrl} alt={`UPI QR code to pay ${formatPaise(upi.amount)} to ${upi.payeeName}`} width={280} height={280} />
+          <p>
+            Paying <strong>{upi.payeeName}</strong> ({upi.upiId}). Reference {upi.reference}
+          </p>
+          <p>
+            On your phone? <a href={upi.upiLink}>Open UPI app</a>
+          </p>
+          <label>
+            After paying, enter the 12-digit UTR / UPI reference number from your app{" "}
+            <input
+              inputMode="numeric"
+              maxLength={12}
+              value={utr}
+              onChange={(e) => setUtr(e.target.value.replace(/\D/g, ""))}
+            />
+          </label>{" "}
+          <button onClick={submitUtr} disabled={busy || utr.length !== 12}>
+            I have paid
+          </button>
+        </section>
+      )}
       <p role="status">{status}</p>
     </div>
   );

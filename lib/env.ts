@@ -62,4 +62,21 @@ export function razorpayWebhookEnv() {
   return razorpayWebhookCache;
 }
 
+const upiSchema = z.object({
+  UPI_VPA: z
+    .string()
+    .regex(/^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,63}$/, "must look like name@bank"),
+  UPI_PAYEE_NAME: z.string().min(1).max(50),
+});
+
+let upiCache: z.infer<typeof upiSchema> | undefined;
+
+export function upiEnv() {
+  upiCache ??= load("UPI", upiSchema, {
+    UPI_VPA: process.env.UPI_VPA,
+    UPI_PAYEE_NAME: process.env.UPI_PAYEE_NAME,
+  });
+  return upiCache;
+}
+
 export const isProduction = process.env.NODE_ENV === "production";
