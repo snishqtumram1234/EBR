@@ -22,6 +22,15 @@ export type CashfreeOrder = {
   order_currency: string;
   order_status: "ACTIVE" | "PAID" | "EXPIRED" | "TERMINATION_REQUESTED" | "TERMINATED";
   payment_session_id: string;
+  created_at?: string;
+  order_note?: string | null;
+  order_tags?: Record<string, string> | null;
+  customer_details?: {
+    customer_id?: string;
+    customer_name?: string | null;
+    customer_phone?: string;
+    customer_email?: string | null;
+  } | null;
 };
 
 export type CashfreePayment = {
@@ -90,12 +99,27 @@ async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Pr
   return json as T;
 }
 
+/**
+ * Cashfree rejects order_tags containing non-ASCII characters (e.g. "₹"),
+ * so tag values are reduced to printable ASCII. Tags are informational only.
+ */
+export function sanitizeTags(tags: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(tags).map(([k, v]) => [
+      k,
+      v.replace(/₹/g, "Rs ").replace(/[^ -~]/g, "").replace(/\s+/g, " ").trim().slice(0, 255),
+    ]),
+  );
+}
+
 export function createCashfreeOrder(input: {
   orderId: string;
   amountPaise: number;
   customer: { id: string; phone: string; name?: string; email?: string };
   returnUrl: string;
   note?: string;
+  /** Small string key/values kept on the Cashfree order (max 10; values up to 255 chars). */
+  tags?: Record<string, string>;
 }): Promise<CashfreeOrder> {
   return call<CashfreeOrder>("POST", "/orders", {
     order_id: input.orderId,
@@ -109,11 +133,49 @@ export function createCashfreeOrder(input: {
     },
     order_meta: { return_url: input.returnUrl },
     order_note: input.note,
+    order_tags: input.tags ? sanitizeTags(input.tags) : undefined,
   });
 }
 
 export function fetchCashfreeOrder(orderId: string): Promise<CashfreeOrder> {
   return call<CashfreeOrder>("GET", `/orders/${encodeURIComponent(orderId)}`);
+}
+
+/**
+ * Server-side truth about a Cashfree order: paid only if Cashfree says the
+ * order is PAID and a successful INR payment covers the full order amount.
+ */
+export type CashfreeVerification =
+  | { status: "paid"; order: CashfreeOrder; amountPaise: number; method: string | null; cfPaymentId: string }
+  | { status: "pending"; order: CashfreeOrder }
+  | { status: "failed"; order: CashfreeOrder; message: string };
+
+export async function verifyCashfreeOrder(orderId: string): Promise<CashfreeVerification> {
+  const [order, payments] = await Promise.all([fetchCashfreeOrder(orderId), fetchCashfreePayments(orderId)]);
+  const orderPaise = rupeesToPaise(order.order_amount);
+  const success = payments.find((p) => p.payment_status === "SUCCESS");
+
+  if (order.order_status === "PAID" && success) {
+    const paidPaise = rupeesToPaise(success.payment_amount);
+    if (paidPaise !== orderPaise || success.payment_currency !== "INR") {
+      logger.warn("payment.cashfree_amount_mismatch", { orderId, orderPaise, paidPaise });
+      return { status: "failed", order, message: "Payment amount does not match the order" };
+    }
+    logger.info("payment.cashfree_verified", {
+      orderId,
+      cfPaymentId: String(success.cf_payment_id),
+      amountPaise: paidPaise,
+      method: success.payment_group,
+    });
+    return { status: "paid", order, amountPaise: paidPaise, method: success.payment_group, cfPaymentId: String(success.cf_payment_id) };
+  }
+
+  const latest = payments[0];
+  if (order.order_status === "ACTIVE" && (!latest || latest.payment_status === "PENDING")) {
+    return { status: "pending", order };
+  }
+  logger.info("payment.cashfree_not_paid", { orderId, orderStatus: order.order_status, paymentStatus: latest?.payment_status });
+  return { status: "failed", order, message: latest?.payment_message || "Payment was not completed. You can try again." };
 }
 
 export function fetchCashfreePayments(orderId: string): Promise<CashfreePayment[]> {

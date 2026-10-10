@@ -57,7 +57,8 @@ describe("Cashfree routes", () => {
     const sent = JSON.parse(String(init.body));
     expect(sent.order_amount).toBe(4998);
     expect(sent.order_currency).toBe("INR");
-    expect(sent.order_meta.return_url).toBe("http://localhost/pay-demo?cf_order_id={order_id}");
+    expect(sent.order_meta.return_url).toBe("http://localhost/checkout/success?order_id={order_id}");
+    expect(sent.customer_details.customer_id).toMatch(/^[A-Za-z0-9]+$/);
   });
 
   it("verify reports paid only when Cashfree says PAID with a matching successful payment", async () => {
@@ -102,5 +103,12 @@ describe("Cashfree routes", () => {
     const res = await POST(post("http://localhost/x", { orderId: "FS_abc_123456" }));
     expect(res.status).toBe(402);
     expect((await res.json()).error.message).toBe("Payment declined");
+  });
+});
+
+describe("sanitizeTags", () => {
+  it("keeps Cashfree order tags to printable ASCII", async () => {
+    const { sanitizeTags } = await import("@/lib/payments/cashfree");
+    expect(sanitizeTags({ items: "Test item (₹1) x1", city: "पुणे Pune,  MH" })).toEqual({ items: "Test item (Rs 1) x1", city: "Pune, MH" });
   });
 });

@@ -21,20 +21,9 @@ type RazorpayInstance = {
   on: (event: "payment.failed", cb: (r: RazorpayFailure) => void) => void;
 };
 
-type CashfreeCheckoutResult = {
-  error?: { message?: string };
-  redirect?: boolean;
-  paymentDetails?: { paymentMessage?: string };
-};
-
-type CashfreeInstance = {
-  checkout: (options: { paymentSessionId: string; redirectTarget?: string }) => Promise<CashfreeCheckoutResult>;
-};
-
 declare global {
   interface Window {
     Razorpay?: new (options: Record<string, unknown>) => RazorpayInstance;
-    Cashfree?: (options: { mode: "sandbox" | "production" }) => CashfreeInstance;
   }
 }
 

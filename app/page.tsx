@@ -6,9 +6,14 @@ export default function Home() {
     <main>
       <h1>Furniture Store</h1>
       <p>Backend foundation is in place. Storefront pages arrive in later phases.</p>
-      <p>
-        <Link href="/pay-demo">Try a Razorpay test payment</Link>
-      </p>
+      <ul>
+        <li>
+          <Link href="/checkout">Checkout (Cashfree, test mode)</Link>
+        </li>
+        <li>
+          <Link href="/pay-demo">Payment methods demo (Cashfree, Razorpay, direct UPI QR)</Link>
+        </li>
+      </ul>
     </main>
   );
 }
